@@ -3,8 +3,8 @@ import { useState } from "react";
 
 function App({ myBestData }) {
   let [playlistUrl, setPlaylistUrl] = useState("");
-  let [playlistData, setPlaylistData] = useState(myBestData); // for testing
-  // let [playlistData, setPlaylistData] = useState(null);
+  // let [playlistData, setPlaylistData] = useState(myBestData); // for testing
+  let [playlistData, setPlaylistData] = useState(null);
   let [numRecs, setNumRecs] = useState(5);
   let [suggestedSongs, setSuggestedSongs] = useState([]);
   let [fetchingSongs, setFetchingSongs] = useState(false);
@@ -42,26 +42,26 @@ function App({ myBestData }) {
   };
 
   let fetchRecommendations = async () => {
-    setSuggestedSongs(myBestData.songs.slice(0, numRecs));
-    // setFetchingRecs(true);
-    // try {
-    //   let res = await fetch(`${backendUrl}/api/get_recommendations`, {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify({ songs: playlistData.songs, num: numRecs }),
-    //   });
-    //   let data = await res.json();
-    //   if (data.success) {
-    //     setSuggestedSongs(data.songs);
-    //   } else {
-    //     alert("Could not fetch recommendations.");
-    //     console.log(data.error);
-    //   }
-    // } catch (e) {
-    //   console.error(e);
-    //   alert("Error fetching recommendations.");
-    // }
-    // setFetchingRecs(false);
+    // setSuggestedSongs(myBestData.songs.slice(0, numRecs));
+    setFetchingRecs(true);
+    try {
+      let res = await fetch(`${backendUrl}/base/get_recommended_songs/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ songs: playlistData.songs, num: numRecs }),
+      });
+      let data = await res.json();
+      if (data.success) {
+        setSuggestedSongs(data.recommended_songs);
+      } else {
+        alert("Could not fetch recommendations.");
+        console.log(data.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error fetching recommendations.");
+    }
+    setFetchingRecs(false);
   };
 
   let showSongs = (songs) => {
