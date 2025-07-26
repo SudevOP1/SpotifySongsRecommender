@@ -1,7 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 
-function App({ myBestData }) {
+function App({}) {
   let backendUrl = "http://127.0.0.1:8000";
   let animationTimeSec = 2;
   let loadingMsgs = [
@@ -23,7 +23,6 @@ function App({ myBestData }) {
   ];
 
   let [playlistUrl, setPlaylistUrl] = useState("");
-  // let [playlistData, setPlaylistData] = useState(myBestData); // for testing
   let [playlistData, setPlaylistData] = useState(null);
   let [numRecs, setNumRecs] = useState(5);
   let [suggestedSongs, setSuggestedSongs] = useState([]);
