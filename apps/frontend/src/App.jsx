@@ -1,19 +1,38 @@
 import { ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 function App({ myBestData }) {
+  let backendUrl = "http://127.0.0.1:8000";
+  let animationTimeSec = 2;
+  let loadingMsgs = [
+    "Finding bangers, please hold on",
+    "Cooking up your music stew",
+    "Good songs take good time",
+    "Summoning your next earworm",
+    "Almost there. Don't skip",
+    "Bribing DJ with cookies",
+    "Shuffling vibes. Please wait",
+    "Loading jams, not traffic",
+    "Searching beats in space",
+    "Tuning the song antenna",
+    "Assembling hits from scratch",
+    "Running on vibes and hope",
+    "Fetching fire from the cloud",
+    "Scanning the jukebox dimension",
+    "Beats are still booting up",
+  ];
+
   let [playlistUrl, setPlaylistUrl] = useState("");
   // let [playlistData, setPlaylistData] = useState(myBestData); // for testing
   let [playlistData, setPlaylistData] = useState(null);
   let [numRecs, setNumRecs] = useState(5);
   let [suggestedSongs, setSuggestedSongs] = useState([]);
-  let [fetchingSongs, setFetchingSongs] = useState(false);
-  let [fetchingRecs, setFetchingRecs] = useState(false);
-
-  let backendUrl = "http://127.0.0.1:8000";
+  let [loadingSongs, setLoadingSongs] = useState(false);
+  let [loadingRecs, setLoadingRecs] = useState(false);
+  let [currentMsgIndex, setCurrentMsgIndex] = useState(0);
 
   let fetchPlaylist = async () => {
-    setFetchingSongs(true);
+    setLoadingSongs(true);
     try {
       let playlist_id = playlistUrl;
       for (let str of ["https://", "www.", "open.spotify.com/playlist/"]) {
@@ -38,12 +57,13 @@ function App({ myBestData }) {
       console.error(e);
       alert("Error fetching playlist.");
     }
-    setFetchingSongs(false);
+    setLoadingSongs(false);
   };
 
   let fetchRecommendations = async () => {
     // setSuggestedSongs(myBestData.songs.slice(0, numRecs));
-    setFetchingRecs(true);
+    setLoadingRecs(true);
+    setCurrentMsgIndex(0);
     try {
       let res = await fetch(`${backendUrl}/base/get_recommended_songs/`, {
         method: "POST",
@@ -61,7 +81,7 @@ function App({ myBestData }) {
       console.error(e);
       alert("Error fetching recommendations.");
     }
-    setFetchingRecs(false);
+    setLoadingRecs(false);
   };
 
   let showSongs = (songs) => {
@@ -70,24 +90,45 @@ function App({ myBestData }) {
         {songs.map((song, i) => (
           <div
             key={i}
-            onClick={() => window.open(song.song_url)}
+            onClick={() => {
+              if (song.found !== false) {
+                window.open(song.song_url);
+              }
+            }}
             className="flex flex-row gap-2 hover:bg-blue-300/10 rounded-xl
               py-1 group cursor-pointer transition duration-150"
           >
             <div className="relative w-7 flex justify-end items-center">
               <p
-                className="text-md text-gray-400 absolute opacity-100 group-hover:opacity-0
-                transition duration-100"
+                className={`text-md text-gray-400 absolute opacity-100
+                  transition duration-100 ${
+                    song.found !== false && "group-hover:opacity-0"
+                  }`}
               >
                 {i + 1}
               </p>
-              <ExternalLink
-                className="text-gray-400 w-4 h-4 absolute opacity-0
+              {song.found !== false && (
+                <ExternalLink
+                  className="text-gray-400 w-4 h-4 absolute opacity-0
                 group-hover:opacity-100 transition duration-100"
-              />
+                />
+              )}
             </div>
 
-            <img src={song.cover} alt={song.name} className="w-10 rounded-lg" />
+            {song.found !== false ? (
+              <img
+                src={song.cover}
+                alt={song.name}
+                className="w-10 rounded-lg"
+              />
+            ) : (
+              <div
+                className="w-10 h-10 bg-gray-700 flex items-center
+                  justify-center text-white font-semibold"
+              >
+                ?
+              </div>
+            )}
             <div className="flex flex-col overflow-hidden">
               <p className="text-sm font-semibold truncate">{song.name}</p>
               <p className="text-xs text-gray-400 truncate">
@@ -99,6 +140,22 @@ function App({ myBestData }) {
       </div>
     );
   };
+
+  useEffect(() => {
+    if (!loadingRecs) return;
+
+    const interval = setInterval(() => {
+      setCurrentMsgIndex((prevIndex) => {
+        let newIndex = prevIndex;
+        while (newIndex === prevIndex && loadingMsgs.length > 1) {
+          newIndex = Math.floor(Math.random() * loadingMsgs.length);
+        }
+        return newIndex;
+      });
+    }, animationTimeSec * 1000);
+
+    return () => clearInterval(interval);
+  }, [loadingRecs]);
 
   return (
     <div
@@ -132,7 +189,8 @@ function App({ myBestData }) {
           />
           <button
             className="py-2 px-5 rounded-full bg-blue-600 hover:bg-blue-800 active:bg-blue-900 text-white
-              text-lg font-semibold cursor-pointer transition absolute top-1/2 -translate-y-1/2 right-2"
+              text-lg font-semibold cursor-pointer transition absolute top-1/2 -translate-y-1/2 right-2
+              disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-progress"
             onClick={fetchPlaylist}
           >
             Fetch Songs
@@ -141,7 +199,7 @@ function App({ myBestData }) {
       )}
 
       {/* loader for fetching songs */}
-      {fetchingSongs && <Loader />}
+      {loadingSongs && <Loader className="mt-10" />}
 
       {playlistData && (
         <div className="w-full mt-8 flex flex-row gap-8">
@@ -152,9 +210,6 @@ function App({ myBestData }) {
             </h2>
             {showSongs(playlistData.songs)}
           </div>
-          
-          {/* loader for fetching rec */}
-          {fetchingRecs && <Loader />}
 
           {/* right - recommendations section */}
           <div className="w-[50%] flex flex-col gap-6">
@@ -171,17 +226,35 @@ function App({ myBestData }) {
                     min={1}
                     max={20}
                     value={numRecs}
+                    disabled={loadingRecs}
                     onChange={(e) => setNumRecs(parseInt(e.target.value))}
                     className="w-30 px-3 py-2 rounded-lg border border-gray-700 bg-gray-800 text-white
                       text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button
                     className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-800 active:bg-blue-900
-                      text-white font-semibold transition"
+                      text-white font-semibold transition cursor-pointer
+                      disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-progress"
                     onClick={fetchRecommendations}
+                    disabled={loadingRecs}
                   >
-                    {fetchingRecs ? "Thinking..." : "Suggest"}
+                    Suggest
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* loader for fetching recs */}
+            {loadingRecs && (
+              <div className="flex flex-row gap-3 items-center">
+                <Loader size="w-8 h-8" />
+                <div className="relative h-6 overflow-hidden">
+                  <p
+                    key={currentMsgIndex}
+                    className="text-blue-400 font-semibold animate-fade-in-out"
+                  >
+                    {loadingMsgs[currentMsgIndex]} ...
+                  </p>
                 </div>
               </div>
             )}
@@ -198,13 +271,40 @@ function App({ myBestData }) {
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes fadeInOut {
+          0% {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          10% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          90% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+        }
+        
+        .animate-fade-in-out {
+          animation: fadeInOut ${animationTimeSec}s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 }
 
-const Loader = () => {
+const Loader = ({ className, size = "w-10 h-10" }) => {
   return (
-    <div className="w-10 h-10 border-4 border-blue-400 border-b-transparent animate-spin rounded-full mt-10" />
+    <div
+      className={`border-4 border-blue-400 border-b-transparent animate-spin rounded-full ${size} ${className}`}
+    />
   );
 };
 
