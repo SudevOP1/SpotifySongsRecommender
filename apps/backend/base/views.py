@@ -2,7 +2,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 
 import json
-from helpers import (
+from .helpers import (
     get_access_token,
     get_playlist_details,
     get_rec_songs_from_gemini,
@@ -55,7 +55,7 @@ def get_recommended_songs(request):
             
             # get rec_songs from spotify
             rec_songs_ok, rec_songs = get_rec_songs_from_spotify(access_token, rec_songs)
-            return JsonResponse({"success": rec_songs_ok, "playlist": rec_songs})
+            return JsonResponse({"success": rec_songs_ok, "recommended_songs": rec_songs})
 
         except Exception as e:
             return JsonResponse({"success": False, "error": f"something went wrong: {e}"})

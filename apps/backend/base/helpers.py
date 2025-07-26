@@ -22,13 +22,13 @@ def get_access_token():
         }
         res = requests.post("https://accounts.spotify.com/api/token", headers=headers, data=data)
         res_json = res.json()
-        return [True, res_json["access_token"]]
+        return True, res_json["access_token"]
     except Exception as e:
-        return [False, f"something went wrong: {e}"]
+        return False, f"something went wrong: {e}"
 
 def get_song_details_from_track(track):
     try:
-        return {
+        return True, {
             "name": track.get("name", ""),
             "artists": [artist["name"] for artist in track["artists"]],
             "song_url": f"https://open.spotify.com/track/{track["id"]}",
@@ -38,7 +38,7 @@ def get_song_details_from_track(track):
             ),
         }
     except Exception as e:
-        return [False, e]
+        return False, e
 
 def get_playlist_details(access_token: str, playlist_id: str):
     try:
@@ -74,26 +74,22 @@ def get_playlist_details(access_token: str, playlist_id: str):
             "name": playlist_name,
             "songs": all_tracks
         }
-        return [True, playlist]
+        # print(f"from get_playlist_details: {json.dumps(playlist, indent=2)}") # debugging
+        return True, playlist
     except Exception as e:
-        return [False, f"something went wrong: {e}"]
+        return False, f"something went wrong: {e}"
 
 def format_gemini_res(res: str):
-    class SongFormat(pydantic.BaseModel):
-        name: str
-        artists: list[str]
-        reason: str
     res = (res
         .replace("```json", "")
         .replace("```", "")
         .strip()
     )
     try:
-        list_of_dict = json.loads(res)
-        songs = [SongFormat(**item) for item in list_of_dict]
-        return [True, songs]
+        songs = json.loads(res)
+        return True, songs
     except Exception as e:
-        return [False, f"json data could not be parsed: {e}"]
+        return False, f"json data could not be parsed: {e}"
 
 def get_rec_songs_from_gemini(input_songs: list[dict], num_recs: int):
     client = genai.Client(api_key=gemini_api_key)
@@ -124,9 +120,10 @@ def get_rec_songs_from_gemini(input_songs: list[dict], num_recs: int):
             model="gemini-2.5-pro",
             contents=prompt.strip(),
         )
+        # print("[Gemini response text]:", response.text) # for debugging
         songs_ok, songs = format_gemini_res(response.text)
         tries += 1
-    return [songs_ok, songs]
+    return songs_ok, songs
 
 def get_rec_songs_from_spotify(access_token: str, songs: list[dict]):
     try:
@@ -136,27 +133,43 @@ def get_rec_songs_from_spotify(access_token: str, songs: list[dict]):
 
         # fetch 1st item for each song
         for song in songs:
+            song_name = song["name"]
+            artist = song["artists"][0]
+            reason = song["reason"]
             try:
-                song_name = song["name"]
-                artist = song["artists"][0]
                 params = {
-                    "q": f"track:{song_name} artist:{artist}",
+                    "q": f"{song_name} {artist}",
                     "type": "track",
                     "limit": 1,
                     "offset": 0,
                 }
                 res_json = requests.get(base_url, params=params, headers=headers).json()
-                rec_song_ok, rec_song = get_song_details_from_track(res_json["tracks"]["items"][0])
+
+                # check for any results
+                res_items = res_json.get("tracks", {}).get("items", [])
+                if not res_items:
+                    rec_songs.append({
+                        "name": song_name,
+                        "artists": song["artists"],
+                        "reason": reason,
+                        "found": False,
+                    })
+                    continue
+
+                rec_song_ok, rec_song = get_song_details_from_track(res_items[0])
                 if rec_song_ok:
+                    rec_song["reason"] = reason
+                    rec_song["found"] = True
                     rec_songs.append(rec_song)
                 else:
                     print(rec_song)
                     continue
-            except Exception:
+            except Exception as e:
+                print(f"[SPOTIFY SEARCH FAIL] {song_name} by {artist}: {e}")
                 continue
         
-        return [True, rec_songs]
+        return True, rec_songs
     except Exception as e:
-        return [False, f"something went wrong: {e}"]
+        return False, f"something went wrong: {e}"
 
 
