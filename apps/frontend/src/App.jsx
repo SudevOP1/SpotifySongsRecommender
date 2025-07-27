@@ -1,7 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 
-function App({ demoPlaylistData, demoRecsData }) {
+function App() {
   let backendUrl = "http://127.0.0.1:8000";
   let animationTimeSec = 2;
   let loadingMsgs = [
@@ -23,65 +23,63 @@ function App({ demoPlaylistData, demoRecsData }) {
   ];
 
   let [playlistUrl, setPlaylistUrl] = useState("");
-  let [playlistData, setPlaylistData] = useState(demoPlaylistData);
+  let [playlistData, setPlaylistData] = useState(null);
   let [numRecs, setNumRecs] = useState(5);
-  let [suggestedSongs, setSuggestedSongs] = useState(demoRecsData);
+  let [suggestedSongs, setSuggestedSongs] = useState([]);
   let [loadingSongs, setLoadingSongs] = useState(false);
   let [loadingRecs, setLoadingRecs] = useState(false);
   let [currentMsgIndex, setCurrentMsgIndex] = useState(0);
 
   let fetchPlaylist = async () => {
-    setPlaylistData(demoPlaylistData);
-    // setLoadingSongs(true);
-    // try {
-    //   let playlist_id = playlistUrl;
-    //   for (let str of ["https://", "www.", "open.spotify.com/playlist/"]) {
-    //     if (playlist_id.includes(str)) {
-    //       playlist_id = playlist_id.replace(str, "");
-    //     }
-    //   }
-    //   // console.log(playlist_id);
-    //   let res = await fetch(`${backendUrl}/base/get_playlist/`, {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify({ playlist_id: playlist_id }),
-    //   });
-    //   let data = await res.json();
-    //   if (data.success) {
-    //     setPlaylistData(data.playlist);
-    //   } else {
-    //     alert("Something went wrong.");
-    //     console.log(data.error);
-    //   }
-    // } catch (e) {
-    //   console.error(e);
-    //   alert("Error fetching playlist.");
-    // }
-    // setLoadingSongs(false);
+    setLoadingSongs(true);
+    try {
+      let playlist_id = playlistUrl;
+      for (let str of ["https://", "www.", "open.spotify.com/playlist/"]) {
+        if (playlist_id.includes(str)) {
+          playlist_id = playlist_id.replace(str, "");
+        }
+      }
+      // console.log(playlist_id);
+      let res = await fetch(`${backendUrl}/base/get_playlist/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playlist_id: playlist_id }),
+      });
+      let data = await res.json();
+      if (data.success) {
+        setPlaylistData(data.playlist);
+      } else {
+        alert("Something went wrong.");
+        console.log(data.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error fetching playlist.");
+    }
+    setLoadingSongs(false);
   };
 
   let fetchRecommendations = async () => {
-    setSuggestedSongs(demoRecsData);
-    // setLoadingRecs(true);
-    // setCurrentMsgIndex(0);
-    // try {
-    //   let res = await fetch(`${backendUrl}/base/get_recommended_songs/`, {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify({ songs: playlistData.songs, num: numRecs }),
-    //   });
-    //   let data = await res.json();
-    //   if (data.success) {
-    //     setSuggestedSongs(data.recommended_songs);
-    //   } else {
-    //     alert("Could not fetch recommendations.");
-    //     console.log(data.error);
-    //   }
-    // } catch (e) {
-    //   console.error(e);
-    //   alert("Error fetching recommendations.");
-    // }
-    // setLoadingRecs(false);
+    setLoadingRecs(true);
+    setCurrentMsgIndex(0);
+    try {
+      let res = await fetch(`${backendUrl}/base/get_recommended_songs/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ songs: playlistData.songs, num: numRecs }),
+      });
+      let data = await res.json();
+      if (data.success) {
+        setSuggestedSongs(data.recommended_songs);
+      } else {
+        alert("Could not fetch recommendations.");
+        console.log(data.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error fetching recommendations.");
+    }
+    setLoadingRecs(false);
   };
 
   let foundOnSpotify = (song) => {
@@ -110,8 +108,8 @@ function App({ demoPlaylistData, demoRecsData }) {
                 text-sm px-2 py-1 rounded-xl opacity-0 group-hover:opacity-100
                 transition duration-300 ease-in pointer-events-none z-10 border-1 border-green-400"
               >
-                <span className="text-green-400 font-bold">Gemini AI:</span>
-                {" "}{song.reason}
+                <span className="text-green-400 font-bold">Gemini AI:</span>{" "}
+                {song.reason}
               </div>
             )}
             <div className="relative w-7 flex justify-end items-center">
