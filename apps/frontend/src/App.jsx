@@ -39,7 +39,7 @@ function App({}) {
           playlist_id = playlist_id.replace(str, "");
         }
       }
-      console.log(playlist_id);
+      // console.log(playlist_id);
       let res = await fetch(`${backendUrl}/base/get_playlist/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
