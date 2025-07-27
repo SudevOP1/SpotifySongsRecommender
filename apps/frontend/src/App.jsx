@@ -1,7 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 
-function App({}) {
+function App({ demoPlaylistData, demoRecsData }) {
   let backendUrl = "http://127.0.0.1:8000";
   let animationTimeSec = 2;
   let loadingMsgs = [
@@ -23,64 +23,69 @@ function App({}) {
   ];
 
   let [playlistUrl, setPlaylistUrl] = useState("");
-  let [playlistData, setPlaylistData] = useState(null);
+  let [playlistData, setPlaylistData] = useState(demoPlaylistData);
   let [numRecs, setNumRecs] = useState(5);
-  let [suggestedSongs, setSuggestedSongs] = useState([]);
+  let [suggestedSongs, setSuggestedSongs] = useState(demoRecsData);
   let [loadingSongs, setLoadingSongs] = useState(false);
   let [loadingRecs, setLoadingRecs] = useState(false);
   let [currentMsgIndex, setCurrentMsgIndex] = useState(0);
 
   let fetchPlaylist = async () => {
-    setLoadingSongs(true);
-    try {
-      let playlist_id = playlistUrl;
-      for (let str of ["https://", "www.", "open.spotify.com/playlist/"]) {
-        if (playlist_id.includes(str)) {
-          playlist_id = playlist_id.replace(str, "");
-        }
-      }
-      // console.log(playlist_id);
-      let res = await fetch(`${backendUrl}/base/get_playlist/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playlist_id: playlist_id }),
-      });
-      let data = await res.json();
-      if (data.success) {
-        setPlaylistData(data.playlist);
-      } else {
-        alert("Something went wrong.");
-        console.log(data.error);
-      }
-    } catch (e) {
-      console.error(e);
-      alert("Error fetching playlist.");
-    }
-    setLoadingSongs(false);
+    setPlaylistData(demoPlaylistData);
+    // setLoadingSongs(true);
+    // try {
+    //   let playlist_id = playlistUrl;
+    //   for (let str of ["https://", "www.", "open.spotify.com/playlist/"]) {
+    //     if (playlist_id.includes(str)) {
+    //       playlist_id = playlist_id.replace(str, "");
+    //     }
+    //   }
+    //   // console.log(playlist_id);
+    //   let res = await fetch(`${backendUrl}/base/get_playlist/`, {
+    //     method: "POST",
+    //     headers: { "Content-Type": "application/json" },
+    //     body: JSON.stringify({ playlist_id: playlist_id }),
+    //   });
+    //   let data = await res.json();
+    //   if (data.success) {
+    //     setPlaylistData(data.playlist);
+    //   } else {
+    //     alert("Something went wrong.");
+    //     console.log(data.error);
+    //   }
+    // } catch (e) {
+    //   console.error(e);
+    //   alert("Error fetching playlist.");
+    // }
+    // setLoadingSongs(false);
   };
 
   let fetchRecommendations = async () => {
-    // setSuggestedSongs(myBestData.songs.slice(0, numRecs));
-    setLoadingRecs(true);
-    setCurrentMsgIndex(0);
-    try {
-      let res = await fetch(`${backendUrl}/base/get_recommended_songs/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songs: playlistData.songs, num: numRecs }),
-      });
-      let data = await res.json();
-      if (data.success) {
-        setSuggestedSongs(data.recommended_songs);
-      } else {
-        alert("Could not fetch recommendations.");
-        console.log(data.error);
-      }
-    } catch (e) {
-      console.error(e);
-      alert("Error fetching recommendations.");
-    }
-    setLoadingRecs(false);
+    setSuggestedSongs(demoRecsData);
+    // setLoadingRecs(true);
+    // setCurrentMsgIndex(0);
+    // try {
+    //   let res = await fetch(`${backendUrl}/base/get_recommended_songs/`, {
+    //     method: "POST",
+    //     headers: { "Content-Type": "application/json" },
+    //     body: JSON.stringify({ songs: playlistData.songs, num: numRecs }),
+    //   });
+    //   let data = await res.json();
+    //   if (data.success) {
+    //     setSuggestedSongs(data.recommended_songs);
+    //   } else {
+    //     alert("Could not fetch recommendations.");
+    //     console.log(data.error);
+    //   }
+    // } catch (e) {
+    //   console.error(e);
+    //   alert("Error fetching recommendations.");
+    // }
+    // setLoadingRecs(false);
+  };
+
+  let foundOnSpotify = (song) => {
+    return song.found !== false;
   };
 
   let showSongs = (songs) => {
@@ -90,23 +95,35 @@ function App({}) {
           <div
             key={i}
             onClick={() => {
-              if (song.found !== false) {
+              if (foundOnSpotify(song)) {
                 window.open(song.song_url);
               }
             }}
+            data-reason={song.reason}
             className="flex flex-row gap-2 hover:bg-blue-300/10 rounded-xl
-              py-1 group cursor-pointer transition duration-150"
+            py-1 group cursor-pointer transition duration-150 relative"
           >
+            {/* tooltip */}
+            {song.reason && (
+              <div
+                className="absolute bottom-full mb-2 max-w-full bg-gray-950/90 text-gray-100
+                text-sm px-2 py-1 rounded-xl opacity-0 group-hover:opacity-100
+                transition duration-300 ease-in pointer-events-none z-10 border-1 border-green-400"
+              >
+                <span className="text-green-400 font-bold">Gemini AI:</span>
+                {" "}{song.reason}
+              </div>
+            )}
             <div className="relative w-7 flex justify-end items-center">
               <p
-                className={`text-md text-gray-400 absolute opacity-100
-                  transition duration-100 ${
-                    song.found !== false && "group-hover:opacity-0"
-                  }`}
+                className={`text-md text-gray-400 absolute opacity-100 transition
+                duration-100 ${
+                  foundOnSpotify(song) && "group-hover:opacity-0"
+                }`}
               >
                 {i + 1}
               </p>
-              {song.found !== false && (
+              {foundOnSpotify(song) && (
                 <ExternalLink
                   className="text-gray-400 w-4 h-4 absolute opacity-0
                 group-hover:opacity-100 transition duration-100"
@@ -114,7 +131,7 @@ function App({}) {
               )}
             </div>
 
-            {song.found !== false ? (
+            {foundOnSpotify(song) ? (
               <img
                 src={song.cover}
                 alt={song.name}
